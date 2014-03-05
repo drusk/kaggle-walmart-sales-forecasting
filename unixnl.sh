@@ -1,4 +1,4 @@
 #!/bin/sh
-# Usage: unixnl.sh input_file > output_file
+# Usage: unixnl.sh input_file 
 
-sed -e 's//\n/g' $1
+sed -i 's//\n/g' $1
