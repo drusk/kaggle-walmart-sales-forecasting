@@ -1,4 +1,4 @@
 #!/bin/sh
-# Usage: unixnl.sh input_file 
+# Usage: unixnl.sh < input_file > output_file
 
-sed -i 's/\r/\n/g' $1
+tr '\r' '\n' < $1 > $2
