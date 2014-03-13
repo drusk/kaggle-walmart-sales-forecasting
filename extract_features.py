@@ -28,9 +28,12 @@ UNEMPLOYMENT = "unemployment"
 IS_HOLIDAY = "is_holiday"
 WEEKLY_SALES = "weekly_sales"
 
-FEATURES = [STORE_ID, TYPE, SIZE, DATE, TEMPERATURE, FUEL_PRICE, MARKDOWN1,
-            MARKDOWN2, MARKDOWN3, MARKDOWN4, MARKDOWN5, CPI, UNEMPLOYMENT,
-            IS_HOLIDAY, WEEKLY_SALES]
+TEST_FEATURES = [STORE_ID, TYPE, SIZE, DATE, TEMPERATURE, FUEL_PRICE, MARKDOWN1,
+                 MARKDOWN2, MARKDOWN3, MARKDOWN4, MARKDOWN5, CPI, UNEMPLOYMENT,
+                 IS_HOLIDAY]
+
+# Includes the target attribute
+TRAIN_FEATURES = TEST_FEATURES + [WEEKLY_SALES]
 
 
 class NumericalFeatureExtractor(object):
@@ -38,19 +41,38 @@ class NumericalFeatureExtractor(object):
         self.categorical_transformer = OneHotEncoder()
         self.date_transformer = DateTransformer()
         self.markdown_transformer = MarkdownTransformer()
-        self.num_transformer = NumberTransformer()
+        self.num_transformer = NumberTransformer(fill_value=0)
         self.boolean_encoder = BooleanEncoder()
 
-        self.feature_vectors = self.build_feature_vectors(input_filename)
+        self.records, self.train = self.read_records(input_filename)
+        self.feature_vectors = self.build_feature_vectors()
 
-    def build_feature_vectors(self, filename):
+    def read_records(self, filename):
         records = []
         with open(filename, "rb") as filehandle:
-            for record in csv.DictReader(filehandle, fieldnames=FEATURES):
+            num_fields = len(filehandle.readline().split(","))
+
+            # reset filehandle to beginning of file
+            filehandle.seek(0)
+
+            if num_fields == len(TEST_FEATURES):
+                train = False
+            elif num_fields == len(TRAIN_FEATURES):
+                train = True
+            else:
+                raise ValueError(
+                    "Unexpected number of fields: %d" % num_fields)
+
+            field_names = TRAIN_FEATURES if train else TEST_FEATURES
+
+            for record in csv.DictReader(filehandle, fieldnames=field_names):
                 records.append(record)
 
+        return records, train
+
+    def build_feature_vectors(self):
         def get_column(column_name):
-            return [record[column_name] for record in records]
+            return [record[column_name] for record in self.records]
 
         store_ids = self.num_transformer.transform(get_column(STORE_ID))
         types = self.categorical_transformer.transform(get_column(TYPE))
@@ -66,7 +88,6 @@ class NumericalFeatureExtractor(object):
         cpis = self.num_transformer.transform(get_column(CPI))
         unemployment = self.num_transformer.transform(get_column(UNEMPLOYMENT))
         is_holiday = self.boolean_encoder.transform(get_column(IS_HOLIDAY))
-        weekly_sales = self.num_transformer.transform(get_column(WEEKLY_SALES))
 
         feature_vectors = [
             store_ids,
@@ -81,12 +102,15 @@ class NumericalFeatureExtractor(object):
             markdown5,
             cpis,
             unemployment,
-            is_holiday,
-            weekly_sales
+            is_holiday
         ]
 
         for i in xrange(types.shape[1]):
             feature_vectors.insert(1 + i, types[:, i])
+
+        if self.train:
+            weekly_sales = self.num_transformer.transform(get_column(WEEKLY_SALES))
+            feature_vectors.append(weekly_sales)
 
         return np.column_stack(feature_vectors)
 
@@ -150,11 +174,17 @@ class MarkdownTransformer(object):
 
 
 class NumberTransformer(object):
+    def __init__(self, fill_value):
+        self.fill_val = fill_value
+
     def transform(self, values):
         new_values = np.zeros(len(values))
 
         for i, value in enumerate(values):
-            new_values[i] = float(value)
+            try:
+                new_values[i] = float(value)
+            except ValueError:
+                new_values[i] = self.fill_val
 
         return new_values
 
