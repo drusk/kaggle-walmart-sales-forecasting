@@ -37,12 +37,13 @@ TRAIN_FEATURES = TEST_FEATURES + [WEEKLY_SALES]
 
 
 class NumericalFeatureExtractor(object):
-    def __init__(self, input_filename):
-        self.categorical_transformer = OneHotEncoder()
-        self.date_transformer = DateTransformer()
-        self.markdown_transformer = MarkdownTransformer()
-        self.num_transformer = NumberTransformer(fill_value=0)
-        self.boolean_encoder = BooleanEncoder()
+    def __init__(self, input_filename, normalize=False):
+        self.categorical_transformer = OneHotEncoder(normalize=normalize)
+        self.date_transformer = DateTransformer(normalize=normalize)
+        self.markdown_transformer = MarkdownTransformer(normalize=normalize)
+        self.num_transformer = NumberTransformer(fill_value=0, normalize=normalize)
+        self.boolean_encoder = BooleanEncoder(normalize=normalize)
+        self.target_transformer = NumberTransformer(normalize=False)
 
         self.records, self.train = self.read_records(input_filename)
         self.feature_vectors = self.build_feature_vectors()
@@ -109,7 +110,8 @@ class NumericalFeatureExtractor(object):
             feature_vectors.insert(1 + i, types[:, i])
 
         if self.train:
-            weekly_sales = self.num_transformer.transform(get_column(WEEKLY_SALES))
+            weekly_sales = self.target_transformer.transform(
+                get_column(WEEKLY_SALES))
             feature_vectors.append(weekly_sales)
 
         return np.column_stack(feature_vectors)
@@ -121,8 +123,32 @@ class NumericalFeatureExtractor(object):
         np.savetxt(output_filename, self.feature_vectors, delimiter=",")
 
 
-class DateTransformer(object):
-    def transform(self, date_strings):
+class Transformer(object):
+    def __init__(self, normalize=False):
+        self.normalize = normalize
+
+    def transform(self, values):
+        new_values = self._transform(values)
+
+        if self.normalize:
+            return self.do_normalize(new_values)
+
+        return new_values
+
+    def do_normalize(self, values):
+        values = np.asarray(values, dtype=np.float64)
+
+        if values.max() == values.min():
+            return np.zeros_like(values)
+
+        return (values - values.min()) / (values.max() - values.min())
+
+    def _transform(self, values):
+        raise NotImplementedError()
+
+
+class DateTransformer(Transformer):
+    def _transform(self, date_strings):
         date_format = "%Y-%m-%d"
         dates = set()
 
@@ -142,8 +168,8 @@ class DateTransformer(object):
         return numerical
 
 
-class OneHotEncoder(object):
-    def transform(self, values):
+class OneHotEncoder(Transformer):
+    def _transform(self, values):
         encodings = {}
         index = 0
 
@@ -160,8 +186,8 @@ class OneHotEncoder(object):
         return numerical
 
 
-class MarkdownTransformer(object):
-    def transform(self, values):
+class MarkdownTransformer(Transformer):
+    def _transform(self, values):
         new_values = np.zeros(len(values))
 
         for i, value in enumerate(values):
@@ -173,11 +199,12 @@ class MarkdownTransformer(object):
         return new_values
 
 
-class NumberTransformer(object):
-    def __init__(self, fill_value):
+class NumberTransformer(Transformer):
+    def __init__(self, fill_value=0, normalize=False):
+        super(NumberTransformer, self).__init__(normalize=normalize)
         self.fill_val = fill_value
 
-    def transform(self, values):
+    def _transform(self, values):
         new_values = np.zeros(len(values))
 
         for i, value in enumerate(values):
@@ -189,8 +216,8 @@ class NumberTransformer(object):
         return new_values
 
 
-class BooleanEncoder(object):
-    def transform(self, values):
+class BooleanEncoder(Transformer):
+    def _transform(self, values):
         new_values = np.zeros(len(values))
 
         for i, value in enumerate(values):
