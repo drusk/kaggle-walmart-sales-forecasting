@@ -24,7 +24,7 @@ class Predictor(object):
 
 
 def write_predictions(predictions, output_filename):
-    np.savetxt(output_filename, predictions, fmt="%10.5f")
+    np.savetxt(output_filename, predictions, fmt="%.2f")
 
 
 def main():
