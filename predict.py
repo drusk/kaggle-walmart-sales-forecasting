@@ -24,7 +24,7 @@ class Predictor(object):
 
 
 def write_predictions(predictions, output_filename):
-    np.savetxt(output_filename, predictions)
+    np.savetxt(output_filename, predictions, fmt="%10.5f")
 
 
 def main():
@@ -38,10 +38,8 @@ def main():
 
     args = parser.parse_args()
 
-    predictor = Predictor(args.model_filename, args.features_filename,
-                          args.output_filename)
-
-    predictions = predictor.predict(args.features_filename)
+    predictions = Predictor(args.model_filename).predict(
+        args.features_filename)
     write_predictions(predictions, args.output_filename)
 
 
