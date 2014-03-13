@@ -10,6 +10,7 @@ import os
 import sqlite3
 
 SALES_TRAINING_FILE = "train.csv"
+SALES_TESTING_FILE = "test.csv"
 STORES_FILE = "stores.csv"
 FEATURES_FILE = "features.csv"
 
@@ -73,6 +74,18 @@ class DatabaseBuilder(object):
             """
         )
 
+        self.con.execute(
+            """
+            CREATE TABLE SalesTest (
+              store_id INT,
+              dept_id INT,
+              date TEXT,
+              is_holiday TEXT,
+              PRIMARY KEY (store_id, dept_id, date)
+            )
+            """
+        )
+
         self.con.commit()
 
     def insert_stores_data(self):
@@ -101,6 +114,14 @@ class DatabaseBuilder(object):
         self._process_file(SALES_TRAINING_FILE, process_record)
         self.con.commit()
 
+    def insert_sales_test_data(self):
+        def process_record(record):
+            self.con.execute(
+                "INSERT INTO SalesTest VALUES (?, ?, ?, ?)", record)
+
+        self._process_file(SALES_TESTING_FILE, process_record)
+        self.con.commit()
+
     def build_all(self):
         """
         Builds all components of the database.
@@ -109,6 +130,7 @@ class DatabaseBuilder(object):
         self.insert_stores_data()
         self.insert_features_data()
         self.insert_sales_train_data()
+        self.insert_sales_test_data()
 
 
 def main():
