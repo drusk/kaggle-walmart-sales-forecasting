@@ -7,7 +7,6 @@ contains both numerical and categorical attributes).
 
 import argparse
 import csv
-import datetime
 
 import numpy as np
 
@@ -15,7 +14,9 @@ import numpy as np
 STORE_ID = "store_id"
 TYPE = "type"
 SIZE = "size"
-DATE = "date"
+YEAR = "year"
+MONTH = "month"
+DAY = "day"
 TEMPERATURE = "temperature"
 FUEL_PRICE = "fuel_price"
 MARKDOWN1 = "markdown1"
@@ -28,9 +29,9 @@ UNEMPLOYMENT = "unemployment"
 IS_HOLIDAY = "is_holiday"
 WEEKLY_SALES = "weekly_sales"
 
-TEST_FEATURES = [STORE_ID, TYPE, SIZE, DATE, TEMPERATURE, FUEL_PRICE, MARKDOWN1,
-                 MARKDOWN2, MARKDOWN3, MARKDOWN4, MARKDOWN5, CPI, UNEMPLOYMENT,
-                 IS_HOLIDAY]
+TEST_FEATURES = [STORE_ID, TYPE, SIZE, YEAR, MONTH, DAY, TEMPERATURE,
+                 FUEL_PRICE, MARKDOWN1, MARKDOWN2, MARKDOWN3, MARKDOWN4,
+                 MARKDOWN5, CPI, UNEMPLOYMENT, IS_HOLIDAY]
 
 # Includes the target attribute
 TRAIN_FEATURES = TEST_FEATURES + [WEEKLY_SALES]
@@ -39,8 +40,9 @@ TRAIN_FEATURES = TEST_FEATURES + [WEEKLY_SALES]
 class NumericalFeatureExtractor(object):
     def __init__(self, input_filename, normalize=False):
         self.categorical_transformer = OneHotEncoder(normalize=normalize)
-        self.date_transformer = DateTransformer(normalize=normalize)
         self.markdown_transformer = MarkdownTransformer(normalize=normalize)
+        self.month_transformer = MonthTransformer(normalize=normalize)
+        self.day_transformer = DayTransformer(normalize=normalize)
         self.num_transformer = NumberTransformer(fill_value=0, normalize=normalize)
         self.boolean_encoder = BooleanEncoder(normalize=normalize)
         self.target_transformer = NumberTransformer(normalize=False)
@@ -78,7 +80,9 @@ class NumericalFeatureExtractor(object):
         store_ids = self.num_transformer.transform(get_column(STORE_ID))
         types = self.categorical_transformer.transform(get_column(TYPE))
         sizes = self.num_transformer.transform(get_column(SIZE))
-        dates = self.date_transformer.transform(get_column(DATE))
+        years = self.num_transformer.transform(get_column(YEAR))
+        months = self.month_transformer.transform(get_column(MONTH))
+        days = self.day_transformer.transform(get_column(DAY))
         temps = self.num_transformer.transform(get_column(TEMPERATURE))
         fuel_prices = self.num_transformer.transform(get_column(FUEL_PRICE))
         markdown1 = self.markdown_transformer.transform(get_column(MARKDOWN1))
@@ -93,7 +97,9 @@ class NumericalFeatureExtractor(object):
         feature_vectors = [
             store_ids,
             sizes,
-            dates,
+            years,
+            months,
+            days,
             temps,
             fuel_prices,
             markdown1,
@@ -147,27 +153,6 @@ class Transformer(object):
         raise NotImplementedError()
 
 
-class DateTransformer(Transformer):
-    def _transform(self, date_strings):
-        date_format = "%Y-%m-%d"
-        dates = set()
-
-        for date_str in date_strings:
-            dates.add(datetime.datetime.strptime(date_str, date_format))
-
-        sorted_dates = sorted(dates)
-
-        encodings = {}
-        for i, date in enumerate(sorted_dates):
-            encodings[date.strftime(date_format)] = i
-
-        numerical = np.zeros(len(date_strings))
-        for i, date_str in enumerate(date_strings):
-            numerical[i] = encodings[date_str]
-
-        return numerical
-
-
 class OneHotEncoder(Transformer):
     def _transform(self, values):
         encodings = {}
@@ -214,6 +199,21 @@ class NumberTransformer(Transformer):
                 new_values[i] = self.fill_val
 
         return new_values
+
+
+class MonthTransformer(NumberTransformer):
+    def do_normalize(self, values):
+        values = np.asarray(values, dtype=np.float64)
+
+        return values / 12
+
+
+class DayTransformer(NumberTransformer):
+    def do_normalize(self, values):
+        values = np.asarray(values, dtype=np.float64)
+
+        # TODO: take into account different days in month
+        return values / 31
 
 
 class BooleanEncoder(Transformer):
