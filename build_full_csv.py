@@ -28,26 +28,30 @@ class CsvBuilder(object):
 
         if self.test:
             sql = """
-                  SELECT S.store_id, S.type, S.size, F.date, F.temperature,
-                         F.fuel_price, F.markdown1, F.markdown2, F.markdown3,
-                         F.markdown4, F.markdown5, F.cpi, F.unemployment,
-                         F.is_holiday
+                  SELECT S.store_id, S.type, S.size, F.year, F.month, F.day,
+                         F.temperature, F.fuel_price, F.markdown1,
+                         F.markdown2, F.markdown3, F.markdown4, F.markdown5,
+                         F.cpi, F.unemployment, F.is_holiday
                   FROM Stores S, Features F, SalesTest ST
                   WHERE S.store_id = F.store_id AND
                         F.store_id = ST.store_id AND
-                        F.date = ST.date
+                        F.year = ST.year AND
+                        F.month = ST.month AND
+                        F.day = ST.day
                   """
 
         else:
             sql = """
-                  SELECT S.store_id, S.type, S.size, F.date, F.temperature,
-                         F.fuel_price, F.markdown1, F.markdown2, F.markdown3,
-                         F.markdown4, F.markdown5, F.cpi, F.unemployment,
-                         F.is_holiday, ST.weekly_sales
+                  SELECT S.store_id, S.type, S.size, F.year, F.month, F.day,
+                         F.temperature, F.fuel_price, F.markdown1,
+                         F.markdown2, F.markdown3, F.markdown4, F.markdown5,
+                         F.cpi, F.unemployment, F.is_holiday, ST.weekly_sales
                   FROM Stores S, Features F, SalesTrain ST
                   WHERE S.store_id = F.store_id AND
                         F.store_id = ST.store_id AND
-                        F.date = ST.date
+                        F.year = ST.year AND
+                        F.month = ST.month AND
+                        F.day = ST.day
                   """
 
         cur.execute(sql)
