@@ -238,8 +238,9 @@ def main():
 
     args = parser.parse_args()
 
-    NumericalFeatureExtractor(args.input_filename).write_feature_vectors(
-        args.output_filename)
+    NumericalFeatureExtractor(
+        args.input_filename,
+        normalize=True).write_feature_vectors(args.output_filename)
 
 
 if __name__ == "__main__":
