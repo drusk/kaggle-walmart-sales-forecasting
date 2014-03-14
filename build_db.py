@@ -21,14 +21,21 @@ class TableBuilder(object):
         self.con = sqlite3.connect(dbname)
         self.filename = filename
 
+        self.date_index = None
+
     def insert_data(self):
         with open(os.path.join(self._data_dir, self.filename),
                   "rb") as filehandle:
             reader = csv.reader(filehandle)
 
-            # Skip header
-            next(reader)
+            header = filehandle.readline().split(",")
+            try:
+                self.date_index = header.index("Date")
+            except ValueError:
+                # Date is not a field in this input CSV file
+                self.date_index = None
 
+            # Note the header was skipped when parsing date index
             for record in reader:
                 self.process_record(record)
 
@@ -37,8 +44,26 @@ class TableBuilder(object):
     def create_table(self):
         raise NotImplementedError()
 
-    def process_record(self, record):
+    def _process_record(self, record):
         raise NotImplementedError()
+
+    def process_record(self, record):
+        if self.date_index:
+            year, month, day = self.parse_date(record[self.date_index])
+            record[self.date_index] = year
+            record.insert(self.date_index + 1, month)
+            record.insert(self.date_index + 2, day)
+
+        self._process_record(record)
+
+    def parse_date(self, date_str):
+        """
+        Returns:
+          year: int
+          month: int
+          day: int
+        """
+        return map(int, date_str.split("-"))
 
 
 class StoresTableBuilder(TableBuilder):
@@ -58,7 +83,7 @@ class StoresTableBuilder(TableBuilder):
 
         self.con.commit()
 
-    def process_record(self, record):
+    def _process_record(self, record):
         self.con.execute(
             "INSERT INTO Stores VALUES (?, ?, ?)", record)
 
@@ -73,7 +98,9 @@ class FeaturesTableBuilder(TableBuilder):
             """
             CREATE TABLE Features (
               store_id INT,
-              date TEXT,
+              year INT,
+              month INT,
+              day INT,
               temperature REAL,
               fuel_price REAL,
               markdown1 REAL,
@@ -84,17 +111,17 @@ class FeaturesTableBuilder(TableBuilder):
               cpi REAL,
               unemployment REAL,
               is_holiday TEXT,
-              PRIMARY KEY (store_id, date)
+              PRIMARY KEY (store_id, year, month, day)
             )
             """
         )
 
         self.con.commit()
 
-    def process_record(self, record):
+    def _process_record(self, record):
         self.con.execute(
             "INSERT INTO Features VALUES "
-            "  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             record)
 
 
@@ -109,19 +136,21 @@ class SalesTrainTableBuilder(TableBuilder):
             CREATE TABLE SalesTrain (
               store_id INT,
               dept_id INT,
-              date TEXT,
+              year INT,
+              month INT,
+              day INT,
               weekly_sales REAL,
               is_holiday TEXT,
-              PRIMARY KEY (store_id, dept_id, date)
+              PRIMARY KEY (store_id, dept_id, year, month, day)
             )
             """
         )
 
         self.con.commit()
 
-    def process_record(self, record):
+    def _process_record(self, record):
         self.con.execute(
-            "INSERT INTO SalesTrain VALUES (?, ?, ?, ?, ?)", record)
+            "INSERT INTO SalesTrain VALUES (?, ?, ?, ?, ?, ?, ?)", record)
 
 
 class SalesTestTableBuilder(TableBuilder):
@@ -135,18 +164,20 @@ class SalesTestTableBuilder(TableBuilder):
             CREATE TABLE SalesTest (
               store_id INT,
               dept_id INT,
-              date TEXT,
+              year INT,
+              month INT,
+              day INT,
               is_holiday TEXT,
-              PRIMARY KEY (store_id, dept_id, date)
+              PRIMARY KEY (store_id, dept_id, year, month, day)
             )
             """
         )
 
         self.con.commit()
 
-    def process_record(self, record):
+    def _process_record(self, record):
         self.con.execute(
-            "INSERT INTO SalesTest VALUES (?, ?, ?, ?)", record)
+            "INSERT INTO SalesTest VALUES (?, ?, ?, ?, ?, ?)", record)
 
 
 class DatabaseBuilder(object):
