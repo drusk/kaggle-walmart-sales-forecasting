@@ -12,6 +12,7 @@ import numpy as np
 
 
 STORE_ID = "store_id"
+DEPT_ID = "dept_id"
 TYPE = "type"
 SIZE = "size"
 YEAR = "year"
@@ -29,7 +30,7 @@ UNEMPLOYMENT = "unemployment"
 IS_HOLIDAY = "is_holiday"
 WEEKLY_SALES = "weekly_sales"
 
-TEST_FEATURES = [STORE_ID, TYPE, SIZE, YEAR, MONTH, DAY, TEMPERATURE,
+TEST_FEATURES = [STORE_ID, DEPT_ID, TYPE, SIZE, YEAR, MONTH, DAY, TEMPERATURE,
                  FUEL_PRICE, MARKDOWN1, MARKDOWN2, MARKDOWN3, MARKDOWN4,
                  MARKDOWN5, CPI, UNEMPLOYMENT, IS_HOLIDAY]
 
@@ -78,6 +79,7 @@ class NumericalFeatureExtractor(object):
             return [record[column_name] for record in self.records]
 
         store_ids = self.num_transformer.transform(get_column(STORE_ID))
+        dept_ids = self.num_transformer.transform(get_column(DEPT_ID))
         types = self.categorical_transformer.transform(get_column(TYPE))
         sizes = self.num_transformer.transform(get_column(SIZE))
         years = self.num_transformer.transform(get_column(YEAR))
@@ -96,6 +98,7 @@ class NumericalFeatureExtractor(object):
 
         feature_vectors = [
             store_ids,
+            dept_ids,
             sizes,
             years,
             months,
@@ -113,7 +116,7 @@ class NumericalFeatureExtractor(object):
         ]
 
         for i in xrange(types.shape[1]):
-            feature_vectors.insert(1 + i, types[:, i])
+            feature_vectors.insert(2 + i, types[:, i])
 
         if self.train:
             weekly_sales = self.target_transformer.transform(
