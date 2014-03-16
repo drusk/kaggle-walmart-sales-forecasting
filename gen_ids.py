@@ -5,6 +5,7 @@ Generates IDs for the records in the format required by Kaggle.
 """
 
 import argparse
+import os
 
 
 def generate_id(record):
@@ -26,12 +27,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("features_filename",
                         help="The CSV file with unprocessed features.")
-    parser.add_argument("output_filename",
+    parser.add_argument("-o", dest="output_filename",
                         help="The file to output IDs to.")
 
     args = parser.parse_args()
 
-    write_ids(args.output_filename, generate_ids(args.features_filename))
+    if args.output_filename is None:
+        output_filename = os.path.splitext(args.features_filename)[0] + ".ids"
+    else:
+        output_filename = args.output_filename
+
+    write_ids(output_filename, generate_ids(args.features_filename))
 
 
 if __name__ == "__main__":
