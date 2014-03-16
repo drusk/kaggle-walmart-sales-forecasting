@@ -9,7 +9,8 @@ import os
 
 
 def generate_id(record):
-    return "_".join([record[0], record[1], "-".join(record[4:7])])
+    return (record[0] + "_" + record[1] + "_" +
+            record[4] + "-" + record[5].zfill(2) + "-" + record[6].zfill(2))
 
 
 def generate_ids(features_filename):
