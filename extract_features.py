@@ -45,6 +45,7 @@ class NumericalFeatureExtractor(object):
         self.month_transformer = MonthTransformer(normalize=normalize)
         self.day_transformer = DayTransformer(normalize=normalize)
         self.num_transformer = NumberTransformer(fill_value=0, normalize=normalize)
+        self.cpi_transformer = CPITransformer(fill_value=0, normalize=normalize)
         self.boolean_encoder = BooleanEncoder(normalize=normalize)
         self.target_transformer = NumberTransformer(normalize=False)
 
@@ -92,7 +93,7 @@ class NumericalFeatureExtractor(object):
         markdown3 = self.markdown_transformer.transform(get_column(MARKDOWN3))
         markdown4 = self.markdown_transformer.transform(get_column(MARKDOWN4))
         markdown5 = self.markdown_transformer.transform(get_column(MARKDOWN5))
-        cpis = self.num_transformer.transform(get_column(CPI))
+        cpis = self.cpi_transformer.transform(get_column(CPI))
         unemployment = self.num_transformer.transform(get_column(UNEMPLOYMENT))
         is_holiday = self.boolean_encoder.transform(get_column(IS_HOLIDAY))
 
@@ -203,6 +204,26 @@ class NumberTransformer(Transformer):
 
         return new_values
 
+class CPITransformer(Transformer):
+    def __init__(self, fill_value=0, normalize=False):
+        super(CPITransformer, self).__init__(normalize=normalize)
+        self.fill_val = fill_value
+
+    def _transform(self, values):
+        new_values = np.zeros(len(values))
+        temp = 0;
+        for i, value in enumerate(values):
+            #temporary code, checking cpi array
+            if (temp != value):
+                temp = value
+                print temp
+            try:
+                new_values[i] = float(value)
+                self.fill_val = float(value)
+            except ValueError:
+                new_values[i] = self.fill_val
+
+        return new_values
 
 class MonthTransformer(NumberTransformer):
     def do_normalize(self, values):
