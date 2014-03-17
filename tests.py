@@ -88,7 +88,7 @@ class NumberTransformerTeset(BaseTest):
 class NumericalFeatureExtractorTest(BaseTest):
     def test_extract_dates_and_categorical(self):
         extractor = NumericalFeatureExtractor(path("head_full_csv"))
-        feature_vectors = extractor.get_feature_vectors()
+        feature_vectors = extractor.extract_features()
 
         self.assert_array_equals(
             feature_vectors,
@@ -109,7 +109,7 @@ class NumericalFeatureExtractorTest(BaseTest):
     def test_extract_normalize(self):
         extractor = NumericalFeatureExtractor(path("head_full_csv"),
                                               normalize=True)
-        feature_vectors = extractor.get_feature_vectors()
+        feature_vectors = extractor.extract_features()
 
         self.assert_array_equals(
             feature_vectors,

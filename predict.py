@@ -23,8 +23,14 @@ class Predictor(object):
         return self.model.predict(data)
 
 
-def write_predictions(predictions, output_filename):
-    np.savetxt(output_filename, predictions, fmt="%.2f")
+def write_predictions(predictions, ids_filename, output_filename):
+    with open(ids_filename, "rb") as ids_file, open(output_filename, "wb") as output_file:
+        output_file.write("Id,Weekly_Sales\n")
+
+        for i, line in enumerate(ids_file):
+            id_ = line.rstrip()
+
+            output_file.write("%s,%.2f\n" % (id_, predictions[i]))
 
 
 def main():
@@ -33,6 +39,8 @@ def main():
                         help="The pickled model.")
     parser.add_argument("features_filename",
                         help="The numerical feature data.")
+    parser.add_argument("ids_filename",
+                        help="File with the IDs for Kaggle submission.")
     parser.add_argument("output_filename",
                         help="Output predictions to this file.")
 
@@ -40,7 +48,7 @@ def main():
 
     predictions = Predictor(args.model_filename).predict(
         args.features_filename)
-    write_predictions(predictions, args.output_filename)
+    write_predictions(predictions, args.ids_filename, args.output_filename)
 
 
 if __name__ == "__main__":
