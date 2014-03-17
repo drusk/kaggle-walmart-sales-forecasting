@@ -1,6 +1,7 @@
 *.pyc
 *.csv
 *.db
+*.ids
 .idea/
 data/
 submissions/
