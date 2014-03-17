@@ -8,6 +8,7 @@ function remove_file {
 remove_file sales.db
 remove_file sales.csv
 remove_file test.csv
+remove_file test.ids
 remove_file train.num.csv
 remove_file test.num.csv
 
@@ -20,10 +21,9 @@ echo Building training CSV file...
 echo Building testing CSV file...
 ./build_full_csv.py --test sales.db
 
-echo Extracting training features...
-./extract_features.py sales.csv train.num.csv
+echo Building IDs file...
+./gen_ids.py test.csv 
 
-echo Extracting testing features...
-./extract_features.py test.csv test.num.csv
+./extract_features.py sales.csv test.csv train.num.csv test.num.csv
 
 echo Done.

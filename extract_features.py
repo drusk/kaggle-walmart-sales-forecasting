@@ -9,6 +9,7 @@ import argparse
 import csv
 
 import numpy as np
+from sklearn import preprocessing
 
 
 STORE_ID = "store_id"
@@ -40,6 +41,8 @@ TRAIN_FEATURES = TEST_FEATURES + [WEEKLY_SALES]
 
 class NumericalFeatureExtractor(object):
     def __init__(self, input_filename, normalize=False):
+        self.records, self.train = self.read_records(input_filename)
+
         self.categorical_transformer = OneHotEncoder(normalize=normalize)
         self.markdown_transformer = MarkdownTransformer(normalize=normalize)
         self.month_transformer = MonthTransformer(normalize=normalize)
@@ -47,9 +50,6 @@ class NumericalFeatureExtractor(object):
         self.num_transformer = NumberTransformer(fill_value=0, normalize=normalize)
         self.boolean_encoder = BooleanEncoder(normalize=normalize)
         self.target_transformer = NumberTransformer(normalize=False)
-
-        self.records, self.train = self.read_records(input_filename)
-        self.feature_vectors = self.build_feature_vectors()
 
     def read_records(self, filename):
         records = []
@@ -74,7 +74,7 @@ class NumericalFeatureExtractor(object):
 
         return records, train
 
-    def build_feature_vectors(self):
+    def extract_features(self):
         def get_column(column_name):
             return [record[column_name] for record in self.records]
 
@@ -124,12 +124,6 @@ class NumericalFeatureExtractor(object):
             feature_vectors.append(weekly_sales)
 
         return np.column_stack(feature_vectors)
-
-    def get_feature_vectors(self):
-        return self.feature_vectors
-
-    def write_feature_vectors(self, output_filename):
-        np.savetxt(output_filename, self.feature_vectors, delimiter=",")
 
 
 class Transformer(object):
@@ -234,16 +228,52 @@ class BooleanEncoder(Transformer):
         return new_values
 
 
+def write_feature_vectors(feature_vectors, output_filename):
+    np.savetxt(output_filename, feature_vectors, delimiter=",")
+
+
+def scale_data(training_data, testing_data):
+    scaler = preprocessing.StandardScaler()
+
+    # Don't scale target attribute
+    feature_data = training_data[:, :-1]
+    target_data = training_data[:, -1]
+
+    scaler.fit(feature_data)
+
+    scaled_training = scaler.transform(feature_data)
+    scaled_training = np.column_stack((scaled_training, target_data))
+
+    scaled_testing = scaler.transform(testing_data)
+
+    return scaled_training, scaled_testing
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_filename")
-    parser.add_argument("output_filename")
+    parser.add_argument("training_filename")
+    parser.add_argument("testing_filename")
+    parser.add_argument("training_output_filename")
+    parser.add_argument("testing_output_filename")
 
     args = parser.parse_args()
 
-    NumericalFeatureExtractor(
-        args.input_filename,
-        normalize=True).write_feature_vectors(args.output_filename)
+    print "Extracting training features..."
+    training_data = NumericalFeatureExtractor(
+        args.training_filename).extract_features()
+
+    print "Extracting testing features..."
+    testing_data = NumericalFeatureExtractor(
+        args.testing_filename).extract_features()
+
+    print "Scaling..."
+    scaled_training, scaled_testing = scale_data(training_data, testing_data)
+
+    print "Writing training output..."
+    write_feature_vectors(scaled_training, args.training_output_filename)
+
+    print "Writing testing output..."
+    write_feature_vectors(scaled_testing, args.testing_output_filename)
 
 
 if __name__ == "__main__":
