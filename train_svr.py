@@ -15,7 +15,7 @@ from sklearn.svm import SVR
 def train_model(features_filename):
     training_data = np.loadtxt(features_filename, delimiter=",")
 
-    model = SVR(C=1.0, epsilon=0.1, kernel="rbf")
+    model = SVR(C=1.0, epsilon=0.1, kernel="linear")
     model.fit(training_data[:, :-1], training_data[:, -1])
 
     return model
