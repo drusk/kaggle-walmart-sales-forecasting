@@ -30,11 +30,11 @@ class ModelEvaluator(object):
 
     def write_expected_and_predicted(self, output_filename):
         with open(output_filename, "wb") as filehandle:
-            filehandle.write("Expected, Predicted\n")
+            filehandle.write("Expected,Predicted\n")
 
             assert len(self.test_target) == len(self.predictions)
             for i in xrange(len(self.predictions)):
-                filehandle.write("%.2f, %.2f\n" % (
+                filehandle.write("%.2f,%.2f\n" % (
                     self.test_target[i], self.predictions[i]))
 
 
