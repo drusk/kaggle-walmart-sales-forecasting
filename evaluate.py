@@ -62,7 +62,8 @@ def main():
 
     print "Mean squared error: %.5f" % evaluator.mean_absolute_error()
 
-    evaluator.write_expected_and_predicted(args.output_file)
+    if args.output_file:
+        evaluator.write_expected_and_predicted(args.output_file)
 
 
 if __name__ == "__main__":
