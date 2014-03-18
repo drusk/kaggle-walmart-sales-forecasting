@@ -11,10 +11,10 @@ import numpy as np
 from sklearn.linear_model import SGDRegressor
 
 
-def train_model(features_filename):
+def train_model(features_filename, iterations):
     training_data = np.loadtxt(features_filename, delimiter=",")
 
-    model = SGDRegressor()
+    model = SGDRegressor(n_iter=iterations)
     model.fit(training_data[:, :-1], training_data[:, -1])
 
     return model
@@ -33,10 +33,13 @@ def main():
                              "array.")
     parser.add_argument("model_filename",
                         help="The file to save the trained model to.")
+    parser.add_argument("-i", dest="iterations", type=int, default=100,
+                        help="Number of iterations of gradient descent "
+                             "to perform.")
 
     args = parser.parse_args()
 
-    model = train_model(args.features_filename)
+    model = train_model(args.features_filename, args.iterations)
     save_model(model, args.model_filename)
 
 
