@@ -20,7 +20,7 @@ class Predictor(object):
 
     def predict(self, features_filename):
         data = np.loadtxt(features_filename, delimiter=",")
-        return self.model.predict(data)
+        return np.power(2, self.model.predict(data))
 
 
 def write_predictions(predictions, ids_filename, output_filename):

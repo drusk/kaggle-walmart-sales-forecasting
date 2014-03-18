@@ -50,7 +50,7 @@ class NumericalFeatureExtractor(object):
         self.num_transformer = NumberTransformer(fill_value=0, normalize=normalize)
         self.nonzeronum_transformer = NonZeroNumTransformer(fill_value=0, normalize=normalize)
         self.boolean_encoder = BooleanEncoder(normalize=normalize)
-        self.target_transformer = NumberTransformer(normalize=False)
+        self.log_transformer = LogarithmicTransformer(normalize=False)
 
     def read_records(self, filename):
         records = []
@@ -120,7 +120,7 @@ class NumericalFeatureExtractor(object):
             feature_vectors.insert(2 + i, types[:, i])
 
         if self.train:
-            weekly_sales = self.target_transformer.transform(
+            weekly_sales = self.log_transformer.transform(
                 get_column(WEEKLY_SALES))
             feature_vectors.append(weekly_sales)
 
@@ -198,6 +198,7 @@ class NumberTransformer(Transformer):
 
         return new_values
 
+
 class NonZeroNumTransformer(Transformer):
     def __init__(self, fill_value=0, normalize=False):
         super(NonZeroNumTransformer, self).__init__(normalize=normalize)
@@ -215,6 +216,7 @@ class NonZeroNumTransformer(Transformer):
                 new_values[i] = self.fill_val
 
         return new_values
+
 
 class MonthTransformer(NumberTransformer):
     def do_normalize(self, values):
@@ -242,6 +244,20 @@ class BooleanEncoder(Transformer):
                 new_values[i] = 0
             else:
                 raise ValueError("Must be TRUE or FALSE, but was %s" % value)
+
+        return new_values
+
+
+class LogarithmicTransformer(Transformer):
+    def _transform(self, values):
+        new_values = np.zeros(len(values))
+
+        for i, value in enumerate(values):
+            num = float(value)
+            if num <= 0:
+                new_values[i] = 0
+            else:
+                new_values[i] = np.log2(num)
 
         return new_values
 
