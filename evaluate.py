@@ -12,19 +12,30 @@ from sklearn import cross_validation
 
 
 class ModelEvaluator(object):
-    def __init__(self, data, test_size):
+    def __init__(self, data, test_size, model):
+        self.model = model
+
         (self.train_data,
          self.test_data,
          self.train_target,
          self.test_target) = cross_validation.train_test_split(
             data[:, :-1], data[:, -1], test_size=test_size)
 
-    def mean_absolute_error(self, model):
-        model.fit(self.train_data, self.train_target)
-        predictions = model.predict(self.test_data)
+        self.model.fit(self.train_data, self.train_target)
+        self.predictions = model.predict(self.test_data)
 
-        error = np.abs(predictions - self.test_target)
+    def mean_absolute_error(self):
+        error = np.abs(self.predictions - self.test_target)
         return error.sum() / error.shape[0]
+
+    def write_expected_and_predicted(self, output_filename):
+        with open(output_filename, "wb") as filehandle:
+            filehandle.write("Expected, Predicted\n")
+
+            assert len(self.test_target) == len(self.predictions)
+            for i in xrange(len(self.predictions)):
+                filehandle.write("%.2f, %.2f\n" % (
+                    self.test_target[i], self.predictions[i]))
 
 
 def main():
@@ -35,6 +46,9 @@ def main():
                         default=0.7,
                         help="The proportion of the dataset to include in "
                              "the test split.")
+    parser.add_argument("--write", dest="output_file",
+                        help="Write both the expected and predicted values "
+                             "to a file.")
 
     args = parser.parse_args()
 
@@ -44,9 +58,11 @@ def main():
     with open(args.data) as filehandle:
         data = np.loadtxt(filehandle, delimiter=",")
 
-    evaluator = ModelEvaluator(data, args.test_size)
+    evaluator = ModelEvaluator(data, args.test_size, model)
 
-    print "Mean squared error: %.5f" % evaluator.mean_absolute_error(model)
+    print "Mean squared error: %.5f" % evaluator.mean_absolute_error()
+
+    evaluator.write_expected_and_predicted(args.output_file)
 
 
 if __name__ == "__main__":
