@@ -28,3 +28,14 @@ Pipeline
 ./predict.py sgdr.model test.num.csv test.ids predictions
     # output: predictions
 ```
+
+
+Evaluating a Model
+------------------
+```
+./preprocess.sh
+
+./train_sgdr.py train.num.csv sgdr.model
+
+./evaluate.py sgdr.model train.num.csv
+```
