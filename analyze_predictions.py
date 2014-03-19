@@ -46,6 +46,12 @@ def main():
     args = parser.parse_args()
 
     expected, predicted = load_data(args.comparison_file)
+
+    print "Max expected: %f" % max(expected)
+    print "Min expected: %f" % min(expected)
+    print "Max predicted: %f" % max(predicted)
+    print "Min predicted: %f" % min(predicted)
+
     plot(expected, predicted, args.num_bins)
 
 
