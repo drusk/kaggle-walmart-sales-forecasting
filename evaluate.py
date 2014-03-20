@@ -24,8 +24,8 @@ class ModelEvaluator(object):
         self.model.fit(self.train_data, self.train_target)
 
         # Make sure to convert back to original domain
-        self.predictions = np.power(2, model.predict(self.test_data))
-        self.test_target = np.power(2, self.test_target)
+        self.predictions = model.predict(self.test_data)
+        self.test_target = self.test_target
 
     def mean_absolute_error(self):
         error = np.abs(self.predictions - self.test_target)

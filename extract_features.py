@@ -50,7 +50,6 @@ class NumericalFeatureExtractor(object):
         self.num_transformer = NumberTransformer(fill_value=0, normalize=normalize)
         self.nonzeronum_transformer = NonZeroNumTransformer(fill_value=0, normalize=normalize)
         self.boolean_encoder = BooleanEncoder(normalize=normalize)
-        self.log_transformer = LogarithmicTransformer(normalize=False)
 
     def read_records(self, filename):
         records = []
@@ -120,7 +119,7 @@ class NumericalFeatureExtractor(object):
             feature_vectors.insert(2 + i, types[:, i])
 
         if self.train:
-            weekly_sales = self.log_transformer.transform(
+            weekly_sales = self.num_transformer.transform(
                 get_column(WEEKLY_SALES))
             feature_vectors.append(weekly_sales)
 
