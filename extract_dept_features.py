@@ -1,19 +1,16 @@
 #!/usr/bin/env python
 
 """
-Extracts numerical features from the full CSV file with all data (which
-contains both numerical and categorical attributes).
+Script description.
 """
 
 import argparse
 import csv
+import os
 
 import numpy as np
-from sklearn import preprocessing
 
 
-STORE_ID = "store_id"
-DEPT_ID = "dept_id"
 TYPE = "type"
 SIZE = "size"
 YEAR = "year"
@@ -31,7 +28,7 @@ UNEMPLOYMENT = "unemployment"
 IS_HOLIDAY = "is_holiday"
 WEEKLY_SALES = "weekly_sales"
 
-TEST_FEATURES = [STORE_ID, DEPT_ID, TYPE, SIZE, YEAR, MONTH, DAY, TEMPERATURE,
+TEST_FEATURES = [TYPE, SIZE, YEAR, MONTH, DAY, TEMPERATURE,
                  FUEL_PRICE, MARKDOWN1, MARKDOWN2, MARKDOWN3, MARKDOWN4,
                  MARKDOWN5, CPI, UNEMPLOYMENT, IS_HOLIDAY]
 
@@ -40,13 +37,8 @@ TRAIN_FEATURES = TEST_FEATURES + [WEEKLY_SALES]
 
 
 class NumericalFeatureExtractor(object):
-    def __init__(self, input_filename, normalize=False):
-        self.records, self.train = self.read_records(input_filename)
-
-        self.categorical_transformer = OneHotEncoder(normalize=normalize)
+    def __init__(self, normalize=False):
         self.markdown_transformer = MarkdownTransformer(normalize=normalize)
-        self.month_transformer = MonthTransformer(normalize=normalize)
-        self.day_transformer = DayTransformer(normalize=normalize)
         self.num_transformer = NumberTransformer(fill_value=0, normalize=normalize)
         self.nonzeronum_transformer = NonZeroNumTransformer(fill_value=0, normalize=normalize)
         self.boolean_encoder = BooleanEncoder(normalize=normalize)
@@ -74,17 +66,15 @@ class NumericalFeatureExtractor(object):
 
         return records, train
 
-    def extract_features(self):
-        def get_column(column_name):
-            return [record[column_name] for record in self.records]
+    def extract_features(self, filename):
+        records, train = self.read_records(filename)
 
-        store_ids = self.num_transformer.transform(get_column(STORE_ID))
-        dept_ids = self.num_transformer.transform(get_column(DEPT_ID))
-        types = self.categorical_transformer.transform(get_column(TYPE))
-        sizes = self.num_transformer.transform(get_column(SIZE))
+        def get_column(column_name):
+            return [record[column_name] for record in records]
+
         years = self.num_transformer.transform(get_column(YEAR))
-        months = self.month_transformer.transform(get_column(MONTH))
-        days = self.day_transformer.transform(get_column(DAY))
+        months = self.num_transformer.transform(get_column(MONTH))
+        days = self.num_transformer.transform(get_column(DAY))
         temps = self.num_transformer.transform(get_column(TEMPERATURE))
         fuel_prices = self.num_transformer.transform(get_column(FUEL_PRICE))
         markdown1 = self.markdown_transformer.transform(get_column(MARKDOWN1))
@@ -97,9 +87,6 @@ class NumericalFeatureExtractor(object):
         is_holiday = self.boolean_encoder.transform(get_column(IS_HOLIDAY))
 
         feature_vectors = [
-            store_ids,
-            dept_ids,
-            sizes,
             years,
             months,
             days,
@@ -115,10 +102,7 @@ class NumericalFeatureExtractor(object):
             is_holiday
         ]
 
-        for i in xrange(types.shape[1]):
-            feature_vectors.insert(2 + i, types[:, i])
-
-        if self.train:
+        if train:
             weekly_sales = self.num_transformer.transform(
                 get_column(WEEKLY_SALES))
             feature_vectors.append(weekly_sales)
@@ -148,24 +132,6 @@ class Transformer(object):
 
     def _transform(self, values):
         raise NotImplementedError()
-
-
-class OneHotEncoder(Transformer):
-    def _transform(self, values):
-        encodings = {}
-        index = 0
-
-        for value in values:
-            if value not in encodings:
-                encodings[value] = index
-                index += 1
-
-        numerical = np.zeros((len(values), index))
-
-        for i, value in enumerate(values):
-            numerical[i][encodings[value]] = 1
-
-        return numerical
 
 
 class MarkdownTransformer(Transformer):
@@ -217,21 +183,6 @@ class NonZeroNumTransformer(Transformer):
         return new_values
 
 
-class MonthTransformer(NumberTransformer):
-    def do_normalize(self, values):
-        values = np.asarray(values, dtype=np.float64)
-
-        return values / 12
-
-
-class DayTransformer(NumberTransformer):
-    def do_normalize(self, values):
-        values = np.asarray(values, dtype=np.float64)
-
-        # TODO: take into account different days in month
-        return values / 31
-
-
 class BooleanEncoder(Transformer):
     def _transform(self, values):
         new_values = np.zeros(len(values))
@@ -247,66 +198,21 @@ class BooleanEncoder(Transformer):
         return new_values
 
 
-class LogarithmicTransformer(Transformer):
-    def _transform(self, values):
-        new_values = np.zeros(len(values))
-
-        for i, value in enumerate(values):
-            num = float(value)
-            if num <= 0:
-                new_values[i] = 0
-            else:
-                new_values[i] = np.log2(num)
-
-        return new_values
-
-
 def write_feature_vectors(feature_vectors, output_filename):
     np.savetxt(output_filename, feature_vectors, delimiter=",")
 
 
-def scale_data(training_data, testing_data):
-    scaler = preprocessing.StandardScaler()
-
-    # Don't scale target attribute
-    feature_data = training_data[:, :-1]
-    target_data = training_data[:, -1]
-
-    scaler.fit(feature_data)
-
-    scaled_training = scaler.transform(feature_data)
-    scaled_training = np.column_stack((scaled_training, target_data))
-
-    scaled_testing = scaler.transform(testing_data)
-
-    return scaled_training, scaled_testing
-
-
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("training_filename")
-    parser.add_argument("testing_filename")
-    parser.add_argument("training_output_filename")
-    parser.add_argument("testing_output_filename")
+    parser.add_argument("directory")
 
     args = parser.parse_args()
 
-    print "Extracting training features..."
-    training_data = NumericalFeatureExtractor(
-        args.training_filename).extract_features()
-
-    print "Extracting testing features..."
-    testing_data = NumericalFeatureExtractor(
-        args.testing_filename).extract_features()
-
-    print "Scaling..."
-    scaled_training, scaled_testing = scale_data(training_data, testing_data)
-
-    print "Writing training output..."
-    write_feature_vectors(scaled_training, args.training_output_filename)
-
-    print "Writing testing output..."
-    write_feature_vectors(scaled_testing, args.testing_output_filename)
+    extractor = NumericalFeatureExtractor()
+    for filename in os.listdir(args.directory):
+        full_name = os.path.join(args.directory, filename)
+        feature_vectors = extractor.extract_features(full_name)
+        write_feature_vectors(feature_vectors, full_name + ".num")
 
 
 if __name__ == "__main__":
