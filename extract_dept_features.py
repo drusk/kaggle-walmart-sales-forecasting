@@ -9,7 +9,6 @@ import csv
 import os
 
 import numpy as np
-from sklearn import preprocessing
 
 
 TYPE = "type"
@@ -108,7 +107,7 @@ class NumericalFeatureExtractor(object):
                 get_column(WEEKLY_SALES))
             feature_vectors.append(weekly_sales)
 
-        return np.column_stack(feature_vectors), train
+        return np.column_stack(feature_vectors)
 
 
 class Transformer(object):
@@ -203,23 +202,6 @@ def write_feature_vectors(feature_vectors, output_filename):
     np.savetxt(output_filename, feature_vectors, delimiter=",")
 
 
-def scale_data(data, train):
-    scaler = preprocessing.StandardScaler()
-
-    # Don't scale target attribute
-    if train:
-        feature_data = data[:, :-1]
-        target_data = data[:, -1]
-
-        scaler.fit(feature_data)
-        scaled_training = scaler.transform(feature_data)
-        return np.column_stack((scaled_training, target_data))
-
-    else:
-        scaler.fit(data)
-        return scaler.transform(data)
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("directory")
@@ -229,9 +211,8 @@ def main():
     extractor = NumericalFeatureExtractor()
     for filename in os.listdir(args.directory):
         full_name = os.path.join(args.directory, filename)
-        feature_vectors, train = extractor.extract_features(full_name)
-        scaled_data = scale_data(feature_vectors, train)
-        write_feature_vectors(scaled_data, full_name + ".num")
+        feature_vectors = extractor.extract_features(full_name)
+        write_feature_vectors(feature_vectors, full_name + ".num")
 
 
 if __name__ == "__main__":
