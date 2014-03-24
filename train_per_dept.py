@@ -9,8 +9,9 @@ import pickle
 import os
 
 import numpy as np
-from sklearn.linear_model import SGDRegressor
+from sklearn.linear_model import BayesianRidge, ElasticNet, SGDRegressor
 from sklearn import preprocessing
+from sklearn.svm import SVR
 
 
 class CompositePredictor(object):
@@ -77,19 +78,30 @@ def save_model(model, model_filename):
         pickle.dump(model, filehandle)
 
 
+def get_algorithm(name):
+    algs = {
+        "sgdr": SGDRegressor,
+        "svr": SVR,
+        "bayes": BayesianRidge,
+        "elastic": ElasticNet
+    }
+
+    return algs[name]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("data_dir",
                         help="Directory containing data files.")
     parser.add_argument("model_filename",
                         help="The file to save the trained model to.")
-    parser.add_argument("-i", dest="iterations", type=int, default=100,
-                        help="Number of iterations of gradient descent "
-                             "to perform.")
+    parser.add_argument("--alg", choices=["sgdr", "svr", "bayes", "elastic"],
+                        default="sgdr",
+                        help="The algorithm for the model being trained.")
 
     args = parser.parse_args()
 
-    model = CompositePredictor(SGDRegressor)
+    model = CompositePredictor(get_algorithm(args.alg))
 
     train_model(args.data_dir, model)
     save_model(model, args.model_filename)
