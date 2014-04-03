@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Trains a Stochastic Gradient Descent Regressor.
+Trains an Elastic Net Regressor.
 """
 
 import argparse
