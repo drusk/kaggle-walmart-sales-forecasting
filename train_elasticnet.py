@@ -11,13 +11,14 @@ import numpy as np
 from sklearn.linear_model import ElasticNet
 
 
-def train_model(features_filename, iterations):
+def train_model(features_filename):
     training_data = np.loadtxt(features_filename, delimiter=",")
 
     X = training_data[:, :-1]
     y = training_data[:, -1]
 
-    model = ElasticNet(alpha=1.0, l1_ratio=0.5, fit_intercept=True, precompute='auto', rho=None)
+    model = ElasticNet(alpha=1.0, l1_ratio=0.5, fit_intercept=True,
+                       precompute='auto', rho=None)
     model.fit(X, y)
 
     return model
@@ -36,13 +37,10 @@ def main():
                              "array.")
     parser.add_argument("model_filename",
                         help="The file to save the trained model to.")
-    parser.add_argument("-i", dest="iterations", type=int, default=100,
-                        help="Number of iterations of gradient descent "
-                             "to perform.")
 
     args = parser.parse_args()
 
-    model = train_model(args.features_filename, args.iterations)
+    model = train_model(args.features_filename)
     save_model(model, args.model_filename)
 
 
